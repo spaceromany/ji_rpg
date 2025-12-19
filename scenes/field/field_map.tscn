@@ -1,0 +1,49 @@
+[gd_scene load_steps=2 format=3 uid="uid://field_map"]
+
+[ext_resource type="Script" path="res://scripts/field/field_map.gd" id="1_map"]
+
+[node name="FieldMap" type="Node2D"]
+script = ExtResource("1_map")
+
+[node name="Terrain" type="Node2D" parent="."]
+
+[node name="Units" type="Node2D" parent="."]
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+
+[node name="InfoPanel" type="Panel" parent="UILayer"]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = -80.0
+offset_right = 250.0
+offset_bottom = -10.0
+grow_vertical = 0
+
+[node name="InfoLabel" type="RichTextLabel" parent="UILayer/InfoPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -8.0
+bbcode_enabled = true
+text = "[color=yellow]전장 맵[/color]
+좌클릭: 유닛 선택
+우클릭: 이동 명령
+적과 접촉 시 전투 시작"
+
+[node name="HelpLabel" type="Label" parent="UILayer"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -200.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = 30.0
+grow_horizontal = 0
+text = "인접 유닛: 최대 4개 참전"
+horizontal_alignment = 2

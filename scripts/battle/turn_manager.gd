@@ -123,7 +123,7 @@ func get_turn_preview(count: int = 10) -> Array:
 	return preview
 
 
-func on_battler_broke(battler: Battler) -> void:
+func on_battler_broke(_battler: Battler) -> void:
 	"""배틀러가 브레이크될 때 턴 순서 재계산"""
 	_calculate_turn_order()
 

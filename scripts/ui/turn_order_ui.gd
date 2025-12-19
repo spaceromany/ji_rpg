@@ -119,20 +119,20 @@ func _create_next_turn_separator() -> Control:
 
 func _create_turn_icon(battler: Battler, is_current: bool, is_next_cycle: bool) -> Control:
 	var container = Control.new()
-	var size: Vector2
+	var icon_size: Vector2
 
 	if is_current:
-		size = CURRENT_ICON_SIZE
+		icon_size = CURRENT_ICON_SIZE
 	elif is_next_cycle:
-		size = NEXT_CYCLE_ICON_SIZE
+		icon_size = NEXT_CYCLE_ICON_SIZE
 	else:
-		size = ICON_SIZE
+		icon_size = ICON_SIZE
 
-	container.custom_minimum_size = size
+	container.custom_minimum_size = icon_size
 
 	# 배경
 	var bg = ColorRect.new()
-	bg.size = size
+	bg.size = icon_size
 	bg.position = Vector2.ZERO
 
 	# 캐릭터 아이콘 (컬러로 구분)
@@ -156,24 +156,24 @@ func _create_turn_icon(battler: Battler, is_current: bool, is_next_cycle: bool) 
 	initial_label.text = battler.data.display_name.left(2)
 	initial_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	initial_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	initial_label.size = size
+	initial_label.size = icon_size
 
-	var font_size: int
+	var label_font_size: int
 	if is_current:
-		font_size = 14
+		label_font_size = 14
 	elif is_next_cycle:
-		font_size = 9
+		label_font_size = 9
 	else:
-		font_size = 11
+		label_font_size = 11
 
-	initial_label.add_theme_font_size_override("font_size", font_size)
+	initial_label.add_theme_font_size_override("font_size", label_font_size)
 	initial_label.add_theme_color_override("font_color", Color.WHITE)
 	container.add_child(initial_label)
 
 	# 현재 턴 하이라이트 테두리
 	if is_current:
 		var border = ColorRect.new()
-		border.size = size + Vector2(4, 4)
+		border.size = icon_size + Vector2(4, 4)
 		border.position = Vector2(-2, -2)
 		border.color = Color.GOLD
 		border.z_index = -1
@@ -188,7 +188,7 @@ func _create_turn_icon(battler: Battler, is_current: bool, is_next_cycle: bool) 
 		break_label.text = "X"
 		break_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		break_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		break_label.size = size
+		break_label.size = icon_size
 		break_label.add_theme_font_size_override("font_size", 16 if not is_next_cycle else 12)
 		break_label.add_theme_color_override("font_color", Color.RED)
 		container.add_child(break_label)
