@@ -37,12 +37,19 @@ func _ready() -> void:
 
 
 func initialize() -> void:
-	current_hp = data.max_hp
-	current_sp = data.max_sp
+	# BattlerData의 현재 HP/SP 사용 (전투 간 상태 유지)
+	current_hp = data.get_current_hp()
+	current_sp = data.get_current_sp()
 	current_shield = data.max_shield
 	current_bp = 0 if is_player else 0
 	state = Enums.BattlerState.IDLE
 	stat_modifiers.clear()
+
+
+func sync_to_data() -> void:
+	"""전투 종료 시 현재 상태를 BattlerData에 동기화"""
+	data.set_current_hp(current_hp)
+	data.set_current_sp(current_sp)
 
 
 #region HP/SP/BP 관리

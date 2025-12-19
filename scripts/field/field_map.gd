@@ -301,9 +301,18 @@ func _finish_drag_selection() -> void:
 		print("[FieldMap] Selected %d units: %s" % [selected_units.size(), selected_units.map(func(u): return u.data.display_name)])
 
 
+# 그룹 이동 시 진형 축소 비율 (0.0 = 모두 같은 점으로, 1.0 = 진형 유지)
+const FORMATION_SCALE: float = 0.3
+
 func _move_selected_units(target_pos: Vector2) -> void:
-	"""선택된 모든 유닛을 목표 위치로 이동 (포메이션 유지)"""
+	"""선택된 모든 유닛을 목표 위치로 이동 (진형 축소)"""
 	if selected_units.size() == 0:
+		return
+
+	# 단일 유닛이면 바로 클릭 지점으로
+	if selected_units.size() == 1:
+		selected_units[0].move_to(target_pos)
+		print("[FieldMap] Moving unit to %s" % target_pos)
 		return
 
 	# 선택된 유닛들의 중심점 계산
@@ -312,16 +321,17 @@ func _move_selected_units(target_pos: Vector2) -> void:
 		center += unit.global_position
 	center /= selected_units.size()
 
-	# 각 유닛을 상대적 위치 유지하며 이동
+	# 각 유닛을 축소된 진형으로 이동 (클릭 지점 주변으로 모임)
 	for unit in selected_units:
 		var offset = unit.global_position - center
-		var unit_target = target_pos + offset
+		# 진형을 축소하여 클릭 지점 주변에 배치
+		var unit_target = target_pos + (offset * FORMATION_SCALE)
 		# 맵 범위 제한
 		unit_target.x = clamp(unit_target.x, 30, map_size.x - 30)
 		unit_target.y = clamp(unit_target.y, 30, map_size.y - 30)
 		unit.move_to(unit_target)
 
-	print("[FieldMap] Moving %d units to %s" % [selected_units.size(), target_pos])
+	print("[FieldMap] Moving %d units to %s (formation scale: %.1f)" % [selected_units.size(), target_pos, FORMATION_SCALE])
 
 
 func _toggle_time_stop() -> void:

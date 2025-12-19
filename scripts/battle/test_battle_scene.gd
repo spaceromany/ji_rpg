@@ -204,12 +204,54 @@ func _on_battle_started() -> void:
 
 
 func _on_battle_ended(player_won: bool) -> void:
+	# 전투 결과를 BattlerData에 동기화
+	_sync_battle_results()
+
 	if player_won:
 		_log("[color=green]===== 승리! =====[/color]")
 		Audio.change_bgm("victory", 0.3, 0.5)
 	else:
 		_log("[color=red]===== 패배... =====[/color]")
 		Audio.change_bgm("defeat", 0.3, 0.5)
+
+
+func _sync_battle_results() -> void:
+	"""전투 결과를 BattlerData와 FieldUnit에 동기화"""
+	# 플레이어 배틀러 상태 동기화
+	for i in range(player_battlers.size()):
+		var battler = player_battlers[i]
+		battler.sync_to_data()
+
+		# FieldUnit HP 바 업데이트
+		if i < field_player_units.size():
+			var field_unit = field_player_units[i]
+			if is_instance_valid(field_unit):
+				var hp_percent = float(battler.current_hp) / float(battler.data.max_hp)
+				field_unit.current_hp_percent = hp_percent
+				print("[TestBattle] Synced player %s: HP=%d/%d (%.0f%%)" % [
+					battler.data.display_name,
+					battler.current_hp,
+					battler.data.max_hp,
+					hp_percent * 100
+				])
+
+	# 적 배틀러 상태 동기화
+	for i in range(enemy_battlers.size()):
+		var battler = enemy_battlers[i]
+		battler.sync_to_data()
+
+		# FieldUnit HP 바 업데이트
+		if i < field_enemy_units.size():
+			var field_unit = field_enemy_units[i]
+			if is_instance_valid(field_unit):
+				var hp_percent = float(battler.current_hp) / float(battler.data.max_hp)
+				field_unit.current_hp_percent = hp_percent
+				print("[TestBattle] Synced enemy %s: HP=%d/%d (%.0f%%)" % [
+					battler.data.display_name,
+					battler.current_hp,
+					battler.data.max_hp,
+					hp_percent * 100
+				])
 
 
 func _on_waiting_for_player_input(battler: Battler) -> void:

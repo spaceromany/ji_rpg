@@ -119,27 +119,32 @@ func _return_to_field_map(player_won: bool) -> void:
 
 	print("[GameManager] Returning to field map. Player won: %s" % player_won)
 
-	# 전투 결과 반영
+	# 전투 결과 반영 - HP 바 업데이트 및 사망 유닛 제거
 	if player_won:
-		# 적 유닛 제거
+		# 적 유닛 제거 (패배한 적)
 		for enemy_unit in current_battle_enemy_units:
 			if is_instance_valid(enemy_unit):
 				print("[GameManager] Removing defeated enemy: %s" % enemy_unit.data.display_name)
-				# 배열에서 제거
 				field_map.enemy_units.erase(enemy_unit)
-				enemy_unit.update_after_battle(0)  # HP 0 = 제거
+				enemy_unit.queue_free()
 	else:
 		# 플레이어 패배 시 참전 유닛 제거
 		for player_unit in current_battle_player_units:
 			if is_instance_valid(player_unit):
 				print("[GameManager] Removing defeated player unit: %s" % player_unit.data.display_name)
 				field_map.player_units.erase(player_unit)
-				player_unit.update_after_battle(0)  # HP 0 = 제거
+				player_unit.queue_free()
 
-	# 생존 유닛 전투 상태 해제
+	# 생존 유닛 전투 상태 해제 및 HP 바 업데이트
 	for unit in current_battle_player_units + current_battle_enemy_units:
 		if is_instance_valid(unit):
 			unit.is_in_battle = false
+			# HP 바 업데이트 (current_hp_percent는 TestBattleScene에서 이미 설정됨)
+			unit._update_hp_bar()
+			print("[GameManager] Updated HP bar for %s: %.0f%%" % [
+				unit.data.display_name,
+				unit.current_hp_percent * 100
+			])
 
 	# 초기화
 	current_battle_player_units.clear()
