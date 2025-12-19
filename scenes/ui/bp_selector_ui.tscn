@@ -1,0 +1,89 @@
+[gd_scene load_steps=2 format=3 uid="uid://bp_selector"]
+
+[ext_resource type="Script" path="res://scripts/ui/bp_selector_ui.gd" id="1_bp"]
+
+[node name="BPSelectorUI" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_bp")
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -150.0
+offset_top = -120.0
+offset_right = 150.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="TitleLabel" type="Label" parent="Panel"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+offset_top = 8.0
+offset_bottom = 28.0
+text = "BP 부스트 (←/→)"
+horizontal_alignment = 1
+
+[node name="BPDisplay" type="HBoxContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+offset_top = 32.0
+offset_bottom = 56.0
+alignment = 1
+
+[node name="BP1" type="ColorRect" parent="Panel/BPDisplay"]
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+color = Color(0.411765, 0.411765, 0.411765, 1)
+
+[node name="BP2" type="ColorRect" parent="Panel/BPDisplay"]
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+color = Color(0.411765, 0.411765, 0.411765, 1)
+
+[node name="BP3" type="ColorRect" parent="Panel/BPDisplay"]
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+color = Color(0.411765, 0.411765, 0.411765, 1)
+
+[node name="BP4" type="ColorRect" parent="Panel/BPDisplay"]
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+color = Color(0.411765, 0.411765, 0.411765, 1)
+
+[node name="BP5" type="ColorRect" parent="Panel/BPDisplay"]
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+color = Color(0.411765, 0.411765, 0.411765, 1)
+
+[node name="InfoLabel" type="Label" parent="Panel"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+offset_top = 58.0
+offset_bottom = 78.0
+text = "BP 사용: 0 | 위력: 100%"
+horizontal_alignment = 1
+
+[node name="ConfirmButton" type="Button" parent="Panel"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -40.0
+offset_top = 80.0
+offset_right = 40.0
+offset_bottom = 96.0
+grow_horizontal = 2
+text = "확인"

@@ -1,0 +1,19 @@
+[remap]
+
+importer="oggvorbisstr"
+type="AudioStreamOggVorbis"
+uid="uid://dodnhsh6rwjqu"
+path="res://.godot/imported/Battle-Forbidden_SNES_loop.ogg-29682fc15f29700800baa2f286473696.oggvorbisstr"
+
+[deps]
+
+source_file="res://assets/Legendary_JRPG_Battle_Music_Pack/09 Forbiddens Saga (SNES style)/RPGmaker/Battle-Forbidden_SNES_loop.ogg"
+dest_files=["res://.godot/imported/Battle-Forbidden_SNES_loop.ogg-29682fc15f29700800baa2f286473696.oggvorbisstr"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

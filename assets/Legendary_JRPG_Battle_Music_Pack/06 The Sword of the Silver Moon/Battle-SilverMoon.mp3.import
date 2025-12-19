@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://bhcp767vr5y8q"
+path="res://.godot/imported/Battle-SilverMoon.mp3-9e4a640db7ae2b139e2936acea564aaf.mp3str"
+
+[deps]
+
+source_file="res://assets/Legendary_JRPG_Battle_Music_Pack/06 The Sword of the Silver Moon/Battle-SilverMoon.mp3"
+dest_files=["res://.godot/imported/Battle-SilverMoon.mp3-9e4a640db7ae2b139e2936acea564aaf.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

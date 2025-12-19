@@ -1,0 +1,19 @@
+[remap]
+
+importer="oggvorbisstr"
+type="AudioStreamOggVorbis"
+uid="uid://s0doac57kwf4"
+path="res://.godot/imported/8bit-Battle01_loop.ogg-da12d919a6f7ac292b2cdfc760e85565.oggvorbisstr"
+
+[deps]
+
+source_file="res://assets/Legendary_JRPG_Battle_Music_Pack/10 Battle1 (8bit style)/Assets_for_Unity/8bit-Battle01_loop.ogg"
+dest_files=["res://.godot/imported/8bit-Battle01_loop.ogg-da12d919a6f7ac292b2cdfc760e85565.oggvorbisstr"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

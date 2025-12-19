@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://dh0ebajnbsebt"
+path="res://.godot/imported/Battle-Furious.mp3-bb8d3ec86e8ad5e3c4949cc49b93d3f4.mp3str"
+
+[deps]
+
+source_file="res://assets/Legendary_JRPG_Battle_Music_Pack/01 Furious Battle/Battle-Furious.mp3"
+dest_files=["res://.godot/imported/Battle-Furious.mp3-bb8d3ec86e8ad5e3c4949cc49b93d3f4.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

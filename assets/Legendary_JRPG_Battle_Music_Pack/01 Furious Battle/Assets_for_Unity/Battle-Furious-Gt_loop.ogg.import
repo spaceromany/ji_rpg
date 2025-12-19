@@ -1,0 +1,19 @@
+[remap]
+
+importer="oggvorbisstr"
+type="AudioStreamOggVorbis"
+uid="uid://b0uufljrchyae"
+path="res://.godot/imported/Battle-Furious-Gt_loop.ogg-c18ddd4abc7897a6906b56944c6d1dca.oggvorbisstr"
+
+[deps]
+
+source_file="res://assets/Legendary_JRPG_Battle_Music_Pack/01 Furious Battle/Assets_for_Unity/Battle-Furious-Gt_loop.ogg"
+dest_files=["res://.godot/imported/Battle-Furious-Gt_loop.ogg-c18ddd4abc7897a6906b56944c6d1dca.oggvorbisstr"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

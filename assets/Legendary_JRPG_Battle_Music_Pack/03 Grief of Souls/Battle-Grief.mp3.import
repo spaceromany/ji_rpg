@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://dxui3kldwmley"
+path="res://.godot/imported/Battle-Grief.mp3-b1dbe2b4763c825556a1e4fe1ff8596f.mp3str"
+
+[deps]
+
+source_file="res://assets/Legendary_JRPG_Battle_Music_Pack/03 Grief of Souls/Battle-Grief.mp3"
+dest_files=["res://.godot/imported/Battle-Grief.mp3-b1dbe2b4763c825556a1e4fe1ff8596f.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

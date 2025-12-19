@@ -1,0 +1,19 @@
+[remap]
+
+importer="oggvorbisstr"
+type="AudioStreamOggVorbis"
+uid="uid://fk5euhy4n07y"
+path="res://.godot/imported/Battle-rapier_loop.ogg-f02f50b84dd77dea5b3e0b439d219423.oggvorbisstr"
+
+[deps]
+
+source_file="res://assets/Legendary_JRPG_Battle_Music_Pack/05 The Girl with a Holy Rapier/RPGmaker/Battle-rapier_loop.ogg"
+dest_files=["res://.godot/imported/Battle-rapier_loop.ogg-f02f50b84dd77dea5b3e0b439d219423.oggvorbisstr"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4
