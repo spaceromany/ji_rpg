@@ -32,10 +32,21 @@ const EnemyStatusUIScene = preload("res://scenes/ui/enemy_status_ui.tscn")
 var player_status_uis: Array = []
 var enemy_status_uis: Array = []
 
+# 외부에서 전달받은 필드 유닛
+var field_player_units: Array = []
+var field_enemy_units: Array = []
+
 
 func _ready() -> void:
 	await get_tree().process_frame
 	_setup_battle()
+
+
+func set_field_units(player_units: Array, enemy_units: Array) -> void:
+	"""GameManager에서 호출 - 전장 유닛 정보 설정"""
+	field_player_units = player_units
+	field_enemy_units = enemy_units
+	print("[TestBattle] Received field units - Players: %d, Enemies: %d" % [player_units.size(), enemy_units.size()])
 
 
 func _setup_battle() -> void:
@@ -45,15 +56,11 @@ func _setup_battle() -> void:
 	battle_manager = BattleManager.new()
 	add_child(battle_manager)
 
-	# 플레이어 파티 생성 (우측에 배치)
-	var warrior = _create_battler(SampleData.create_warrior(), true, 0)
-	var mage = _create_battler(SampleData.create_mage(), true, 1)
-	player_battlers = [warrior, mage]
-
-	# 적 파티 생성 (좌측에 배치)
-	var goblin1 = _create_battler(SampleData.create_goblin(), false, 0)
-	var goblin2 = _create_battler(SampleData.create_goblin(), false, 1)
-	enemy_battlers = [goblin1, goblin2]
+	# 필드 유닛이 있으면 해당 유닛의 배틀러 사용, 없으면 기본 테스트용
+	if field_player_units.size() > 0:
+		_setup_battlers_from_field_units()
+	else:
+		_setup_default_battlers()
 
 	# UI 설정
 	_setup_ui()
@@ -79,6 +86,55 @@ func _setup_battle() -> void:
 	# 전투 시작
 	print("[TestBattle] Starting battle...")
 	battle_manager.start_battle(player_battlers, enemy_battlers)
+
+
+func _setup_battlers_from_field_units() -> void:
+	"""필드 유닛에서 배틀러 생성 - 각 부대당 1명의 대표 배틀러"""
+	print("[TestBattle] Setting up battlers from field units")
+
+	# 플레이어 배틀러 생성 (부대당 1명)
+	var player_index = 0
+	for field_unit in field_player_units:
+		if player_index >= 4:
+			break
+		if field_unit.data and field_unit.data.battler_data_list.size() > 0:
+			# 첫 번째 배틀러(리더)를 대표로 사용
+			var battler_data = field_unit.data.battler_data_list[0]
+			var battler = _create_battler(battler_data, true, player_index)
+			player_battlers.append(battler)
+			player_index += 1
+
+	# 적 배틀러 생성 (부대당 1명)
+	var enemy_index = 0
+	for field_unit in field_enemy_units:
+		if enemy_index >= 4:
+			break
+		if field_unit.data and field_unit.data.battler_data_list.size() > 0:
+			# 첫 번째 배틀러(리더)를 대표로 사용
+			var battler_data = field_unit.data.battler_data_list[0]
+			var battler = _create_battler(battler_data, false, enemy_index)
+			enemy_battlers.append(battler)
+			enemy_index += 1
+
+	print("[TestBattle] Created %d player battlers (from %d units), %d enemy battlers (from %d units)" % [
+		player_battlers.size(), field_player_units.size(),
+		enemy_battlers.size(), field_enemy_units.size()
+	])
+
+
+func _setup_default_battlers() -> void:
+	"""기본 테스트용 배틀러 생성"""
+	print("[TestBattle] Using default test battlers")
+
+	# 플레이어 파티 생성 (우측에 배치)
+	var warrior = _create_battler(SampleData.create_warrior(), true, 0)
+	var mage = _create_battler(SampleData.create_mage(), true, 1)
+	player_battlers = [warrior, mage]
+
+	# 적 파티 생성 (좌측에 배치)
+	var goblin1 = _create_battler(SampleData.create_goblin(), false, 0)
+	var goblin2 = _create_battler(SampleData.create_goblin(), false, 1)
+	enemy_battlers = [goblin1, goblin2]
 
 
 func _create_battler(data: BattlerData, is_player: bool, index: int) -> Battler:
@@ -157,6 +213,7 @@ func _on_battle_ended(player_won: bool) -> void:
 
 
 func _on_waiting_for_player_input(battler: Battler) -> void:
+	print("[TestBattle] _on_waiting_for_player_input called for: %s" % battler.data.display_name)
 	_log("")
 	_log("[color=cyan]>>> %s의 턴 <<<[/color]" % battler.data.display_name)
 
@@ -166,6 +223,7 @@ func _on_waiting_for_player_input(battler: Battler) -> void:
 	# 커맨드 UI 표시 (캐릭터 옆에 배치)
 	_position_command_ui(battler)
 	command_ui.show_commands(battler)
+	print("[TestBattle] Command UI shown, waiting for input...")
 
 
 func _position_command_ui(battler: Battler) -> void:

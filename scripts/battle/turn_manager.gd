@@ -23,7 +23,7 @@ func _calculate_turn_order() -> void:
 	"""속도 기반 턴 순서 계산"""
 	turn_order.clear()
 
-	# 살아있고 브레이크 상태가 아닌 배틀러만 포함
+	# 살아있는 배틀러만 포함
 	for battler in battlers:
 		if battler.is_alive():
 			turn_order.append(battler)
@@ -42,6 +42,8 @@ func _calculate_turn_order() -> void:
 			active_battlers.append(battler)
 
 	turn_order = active_battlers + broken_battlers
+
+	print("[TurnManager] Turn order calculated: %s" % [turn_order.map(func(b): return b.data.display_name)])
 	turn_order_changed.emit(turn_order)
 
 
@@ -85,12 +87,15 @@ func advance_turn() -> Battler:
 	"""현재 배틀러 턴 종료, 다음 배틀러 반환"""
 	var current = get_current_battler()
 	if current:
+		print("[TurnManager] Turn ended for: %s" % current.data.display_name)
 		current.on_turn_end()
 
 	current_turn_index += 1
+	print("[TurnManager] Advancing to turn index: %d / %d" % [current_turn_index, turn_order.size()])
 
 	# 라운드 종료 체크
 	if current_turn_index >= turn_order.size():
+		print("[TurnManager] Round %d ended, starting new round" % current_round)
 		current_round += 1
 		start_round()
 	else:
@@ -100,6 +105,7 @@ func advance_turn() -> Battler:
 
 	var next = get_current_battler()
 	if next:
+		print("[TurnManager] Next turn: %s" % next.data.display_name)
 		turn_started.emit(next)
 
 	return next
@@ -123,9 +129,30 @@ func get_turn_preview(count: int = 10) -> Array:
 	return preview
 
 
-func on_battler_broke(_battler: Battler) -> void:
-	"""배틀러가 브레이크될 때 턴 순서 재계산"""
-	_calculate_turn_order()
+func on_battler_broke(battler: Battler) -> void:
+	"""배틀러가 브레이크될 때 턴 순서에서 맨 뒤로 이동"""
+	# 현재 배틀러 위치 찾기
+	var battler_index = turn_order.find(battler)
+	if battler_index == -1:
+		return
+
+	# 이미 턴이 지난 배틀러면 무시
+	if battler_index < current_turn_index:
+		return
+
+	# 턴 순서에서 제거하고 맨 뒤로
+	turn_order.erase(battler)
+	turn_order.append(battler)
+
+	# 인덱스 조정 (제거된 배틀러가 현재 턴 이전이었으면)
+	if battler_index < current_turn_index:
+		current_turn_index -= 1
+
+	print("[TurnManager] %s broke, moved to end of turn order" % battler.data.display_name)
+
+	# UI 업데이트 (현재 턴부터 남은 순서)
+	var remaining_order = turn_order.slice(current_turn_index)
+	turn_order_changed.emit(remaining_order)
 
 
 func on_battler_died(battler: Battler) -> void:

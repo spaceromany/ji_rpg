@@ -28,12 +28,14 @@ var hp_bar: ColorRect
 var detection_area: Area2D
 var path_line: Line2D
 var arrow: Polygon2D
+var support_range_circle: Node2D
 
 
 func _ready() -> void:
 	_setup_visuals()
 	_setup_areas()
 	_setup_path_display()
+	_setup_support_range_circle()
 
 
 func _setup_visuals() -> void:
@@ -115,6 +117,18 @@ func _setup_path_display() -> void:
 	add_child(arrow)
 
 
+func _setup_support_range_circle() -> void:
+	# 지원 범위 원을 그리는 커스텀 노드
+	support_range_circle = Node2D.new()
+	support_range_circle.z_index = -5  # 유닛 뒤에 배치
+	add_child(support_range_circle)
+	move_child(support_range_circle, 0)  # 가장 뒤로
+
+	# draw 함수를 위한 스크립트 연결
+	support_range_circle.set_script(preload("res://scripts/field/support_range_drawer.gd"))
+	support_range_circle.setup(self)
+
+
 func initialize(unit_data: FieldUnitData) -> void:
 	data = unit_data
 	if sprite:
@@ -172,15 +186,14 @@ func set_selected(selected: bool) -> void:
 	if selection_indicator:
 		selection_indicator.visible = selected
 
-	if not selected:
-		_hide_path()
-	elif is_moving:
+	# 이동 중이면 선택 해제해도 화살표 유지
+	if is_moving:
 		_update_path_display()
 
 
 func _update_path_display() -> void:
 	"""이동 경로 점선 + 화살표 표시"""
-	if not is_selected or not is_moving or target_position == Vector2.ZERO:
+	if not is_moving or target_position == Vector2.ZERO:
 		_hide_path()
 		return
 

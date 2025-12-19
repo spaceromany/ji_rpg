@@ -22,6 +22,7 @@ var state: BattleState = BattleState.INACTIVE
 var turn_manager: TurnManager
 var player_party: Array = []
 var enemy_party: Array = []
+var is_processing_turn: bool = false  # 턴 처리 중 플래그
 
 
 func _ready() -> void:
@@ -55,18 +56,44 @@ func start_battle(players: Array, enemies: Array) -> void:
 
 func _on_turn_started(battler: Battler) -> void:
 	"""배틀러 턴 시작 시 호출"""
+	# 이미 턴 처리 중이면 무시 (중복 시그널 방지)
+	if is_processing_turn:
+		print("[BattleManager] Already processing turn, ignoring signal for: %s" % battler.data.display_name)
+		return
+
+	print("[BattleManager] Turn started for: %s (can_act: %s, state: %s)" % [
+		battler.data.display_name,
+		battler.can_act(),
+		battler.state
+	])
+
+	# 비동기 처리를 위해 별도 함수로 분리
+	_process_turn(battler)
+
+
+func _process_turn(battler: Battler) -> void:
+	"""실제 턴 처리 (비동기)"""
+	is_processing_turn = true
+
 	if not battler.can_act():
 		# 브레이크 상태면 턴 스킵
+		print("[BattleManager] %s cannot act, skipping turn" % battler.data.display_name)
 		await get_tree().create_timer(0.5).timeout
+		is_processing_turn = false
 		turn_manager.advance_turn()
 		return
 
 	if battler.is_player:
 		state = BattleState.PLAYER_TURN
+		print("[BattleManager] Waiting for player input: %s" % battler.data.display_name)
+		is_processing_turn = false  # 플레이어 입력 대기 시 플래그 해제
 		waiting_for_player_input.emit(battler)
+		# 플레이어 턴은 여기서 끝 - 입력 대기
 	else:
 		state = BattleState.ENEMY_TURN
-		_execute_enemy_ai(battler)
+		print("[BattleManager] Executing enemy AI: %s" % battler.data.display_name)
+		await _execute_enemy_ai(battler)
+		# is_processing_turn은 _execute_enemy_ai 내부에서 advance_turn 호출 전에 해제됨
 
 
 func execute_player_action(
@@ -159,6 +186,7 @@ func _execute_enemy_ai(enemy: Battler) -> void:
 	"""적 AI 행동 (심플 버전)"""
 	# 가장 단순한 AI: 랜덤 스킬, 랜덤 타겟
 	if enemy.data.skills.is_empty():
+		is_processing_turn = false
 		turn_manager.advance_turn()
 		return
 
@@ -188,6 +216,7 @@ func _execute_enemy_ai(enemy: Battler) -> void:
 			targets.append(enemy)
 
 	if targets.is_empty():
+		is_processing_turn = false
 		turn_manager.advance_turn()
 		return
 
@@ -195,8 +224,10 @@ func _execute_enemy_ai(enemy: Battler) -> void:
 	await _execute_action(enemy, skill, targets, 0)
 
 	if _check_battle_end():
+		is_processing_turn = false
 		return
 
+	is_processing_turn = false
 	turn_manager.advance_turn()
 
 
