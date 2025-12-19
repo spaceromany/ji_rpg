@@ -3,11 +3,11 @@
 [ext_resource type="Script" path="res://scripts/ui/command_ui.gd" id="1_script"]
 
 [node name="CommandUI" type="Control"]
-custom_minimum_size = Vector2(200, 220)
+custom_minimum_size = Vector2(320, 360)
 layout_mode = 3
 anchors_preset = 0
-offset_right = 200.0
-offset_bottom = 220.0
+offset_right = 320.0
+offset_bottom = 360.0
 script = ExtResource("1_script")
 
 [node name="Panel" type="Panel" parent="."]
@@ -21,35 +21,36 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 8.0
-offset_top = 8.0
-offset_right = -8.0
-offset_bottom = -8.0
-theme_override_constants/separation = 6
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+theme_override_constants/separation = 10
 
 [node name="BoostContainer" type="HBoxContainer" parent="VBox"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 12
 
 [node name="BoostLabel" type="Label" parent="VBox/BoostContainer"]
 layout_mode = 2
 text = "Boost [R]"
+theme_override_font_sizes/font_size = 18
 
 [node name="BoostIndicator" type="HBoxContainer" parent="VBox/BoostContainer"]
 layout_mode = 2
 size_flags_horizontal = 10
-theme_override_constants/separation = 4
+theme_override_constants/separation = 6
 
 [node name="HSeparator" type="HSeparator" parent="VBox"]
 layout_mode = 2
 
 [node name="CommandList" type="VBoxContainer" parent="VBox"]
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 8
 
 [node name="SkillPanel" type="Panel" parent="VBox"]
 visible = false
-custom_minimum_size = Vector2(0, 100)
+custom_minimum_size = Vector2(0, 160)
 layout_mode = 2
 size_flags_vertical = 3
 
@@ -58,15 +59,15 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 5.0
-offset_top = 5.0
-offset_right = -5.0
-offset_bottom = -5.0
-theme_override_constants/separation = 2
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -8.0
+theme_override_constants/separation = 4
 
 [node name="DescriptionLabel" type="Label" parent="VBox"]
 layout_mode = 2
 text = "커맨드를 선택하세요"
 autowrap_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)

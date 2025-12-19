@@ -13,6 +13,7 @@ extends Node2D
 @onready var popup_container: Control = $CanvasLayer/PopupContainer
 @onready var player_sprites_container: Node2D = $PlayerSprites
 @onready var enemy_sprites_container: Node2D = $EnemySprites
+@onready var battle_camera: Camera2D = $BattleCamera
 
 # 전투 시스템
 var battle_manager: BattleManager
@@ -38,6 +39,9 @@ var field_enemy_units: Array = []
 
 
 func _ready() -> void:
+	# 전투 씬 자체 카메라 활성화 (전장 맵 카메라와 독립)
+	if battle_camera:
+		battle_camera.make_current()
 	await get_tree().process_frame
 	_setup_battle()
 
@@ -71,6 +75,7 @@ func _setup_battle() -> void:
 	battle_manager.battle_started.connect(_on_battle_started)
 	battle_manager.battle_ended.connect(_on_battle_ended)
 	battle_manager.waiting_for_player_input.connect(_on_waiting_for_player_input)
+	battle_manager.enemy_turn_started.connect(_on_enemy_turn_started)
 	battle_manager.action_executed.connect(_on_action_executed)
 
 	# UI 시그널 연결
@@ -137,6 +142,13 @@ func _setup_default_battlers() -> void:
 	enemy_battlers = [goblin1, goblin2]
 
 
+# 스프라이트 기본 위치 (종렬 배치용)
+const PLAYER_BASE_X: float = 1400.0  # 아군 기본 X 위치
+const ENEMY_BASE_X: float = 400.0    # 적군 기본 X 위치
+const SPRITE_Y_START: float = 180.0  # Y 시작 위치
+const SPRITE_Y_GAP: float = 220.0    # Y 간격 (스프라이트 간 여백 확보)
+const STEP_FORWARD: float = 100.0    # 턴 시 앞으로 나오는 거리
+
 func _create_battler(data: BattlerData, is_player: bool, index: int) -> Battler:
 	var battler = Battler.new()
 	battler.data = data
@@ -144,31 +156,36 @@ func _create_battler(data: BattlerData, is_player: bool, index: int) -> Battler:
 	add_child(battler)
 	battler.initialize()
 
-	# 스프라이트 생성 (옥토패스 스타일: 적 좌측, 아군 우측)
+	# 스프라이트 생성 (옥토패스 스타일: 적 좌측, 아군 우측 - 종렬 배치)
 	var sprite = ColorRect.new()
-	sprite.size = Vector2(80, 120)
+	sprite.size = Vector2(120, 180)  # 1920x1080 기준 크기
 
 	# 이름 레이블
 	var name_label = Label.new()
 	name_label.text = data.display_name
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_label.position = Vector2(0, -25)
-	name_label.size = Vector2(80, 20)
-	name_label.add_theme_font_size_override("font_size", 12)
+	name_label.position = Vector2(0, -35)
+	name_label.size = Vector2(120, 30)
+	name_label.add_theme_font_size_override("font_size", 18)
 	sprite.add_child(name_label)
 
+	# 종렬 배치: Y축으로 나열
+	var y_pos = SPRITE_Y_START + index * SPRITE_Y_GAP
+
 	if is_player:
-		# 아군: 우측 배치 (오른쪽에서 왼쪽으로)
+		# 아군: 우측에 종렬 배치
 		sprite.color = Color(0.3, 0.5, 0.8)
-		sprite.position = Vector2(750 + index * 100, 280)
+		sprite.position = Vector2(PLAYER_BASE_X, y_pos)
 		player_sprites_container.add_child(sprite)
 	else:
-		# 적: 좌측 배치
+		# 적: 좌측에 종렬 배치
 		sprite.color = Color(0.7, 0.3, 0.3)
-		sprite.position = Vector2(150 + index * 120, 200)
+		sprite.position = Vector2(ENEMY_BASE_X, y_pos)
 		enemy_sprites_container.add_child(sprite)
 
+	# 기본 위치 저장 (턴 시 복귀용)
 	battler.set_meta("sprite", sprite)
+	battler.set_meta("base_position", sprite.position)
 	return battler
 
 
@@ -270,17 +287,24 @@ func _on_waiting_for_player_input(battler: Battler) -> void:
 
 func _position_command_ui(battler: Battler) -> void:
 	# 현재 턴 캐릭터의 스프라이트 위치 근처에 커맨드 UI 배치
-	if battler.has_meta("sprite"):
-		var sprite = battler.get_meta("sprite")
-		# 캐릭터 왼쪽에 커맨드 UI 배치
-		command_ui.position = Vector2(sprite.position.x - 210, sprite.position.y - 50)
+	if battler.has_meta("base_position"):
+		var base_pos = battler.get_meta("base_position")
+		# 아군: 캐릭터 왼쪽에 배치 (앞으로 나온 위치 기준)
+		# 적군: 캐릭터 오른쪽에 배치
+		if battler.is_player:
+			command_ui.position = Vector2(base_pos.x - STEP_FORWARD - 350, base_pos.y - 80)
+		else:
+			command_ui.position = Vector2(base_pos.x + STEP_FORWARD + 150, base_pos.y - 80)
 
 
 func _highlight_current_battler(battler: Battler) -> void:
-	# 모든 스프라이트 원래 색으로
+	# 모든 스프라이트 원래 색으로 + 기본 위치로 복귀
 	for b in player_battlers + enemy_battlers:
-		if b.has_meta("sprite"):
+		if b.has_meta("sprite") and b.has_meta("base_position"):
 			var sprite = b.get_meta("sprite")
+			var base_pos = b.get_meta("base_position")
+
+			# 색상 복원
 			if b.state == Enums.BattlerState.BROKEN:
 				sprite.color = Color(0.3, 0.3, 0.3)
 			elif b.is_player:
@@ -288,10 +312,32 @@ func _highlight_current_battler(battler: Battler) -> void:
 			else:
 				sprite.color = Color(0.7, 0.3, 0.3)
 
-	# 현재 배틀러 하이라이트 (밝은 노란색 테두리 효과)
-	if battler.has_meta("sprite"):
+			# 기본 위치로 부드럽게 복귀
+			var tween = create_tween()
+			tween.tween_property(sprite, "position", base_pos, 0.15).set_ease(Tween.EASE_OUT)
+
+	# 현재 배틀러 하이라이트 + 앞으로 나오기
+	if battler.has_meta("sprite") and battler.has_meta("base_position"):
 		var sprite = battler.get_meta("sprite")
+		var base_pos = battler.get_meta("base_position")
+
+		# 밝은 노란색으로 하이라이트
 		sprite.color = Color(0.9, 0.8, 0.3)
+
+		# 앞으로 나오기 (아군은 왼쪽으로, 적군은 오른쪽으로)
+		var step_direction = -1 if battler.is_player else 1
+		var target_pos = base_pos + Vector2(step_direction * STEP_FORWARD, 0)
+
+		var tween = create_tween()
+		tween.tween_property(sprite, "position", target_pos, 0.2).set_ease(Tween.EASE_OUT)
+
+
+func _on_enemy_turn_started(battler: Battler) -> void:
+	"""적군 턴 시작 시 호출 - 하이라이트 처리"""
+	print("[TestBattle] Enemy turn started: %s" % battler.data.display_name)
+	_log("")
+	_log("[color=red]>>> %s의 턴 <<<[/color]" % battler.data.display_name)
+	_highlight_current_battler(battler)
 
 
 func _on_command_action_confirmed(skill: SkillData, bp_used: int) -> void:
@@ -360,7 +406,7 @@ func _on_target_selection_changed(target: Battler) -> void:
 func _highlight_target(target: Battler) -> void:
 	var current_battler = battle_manager.get_current_battler()
 
-	# 모든 스프라이트 원래 색으로
+	# 모든 스프라이트 원래 색으로 (위치는 유지)
 	for b in player_battlers + enemy_battlers:
 		if b.has_meta("sprite"):
 			var sprite = b.get_meta("sprite")
@@ -373,10 +419,18 @@ func _highlight_target(target: Battler) -> void:
 			else:
 				sprite.color = Color(0.7, 0.3, 0.3)
 
-	# 선택된 대상 하이라이트 (주황색)
-	if target.has_meta("sprite"):
+	# 선택된 대상 하이라이트 (주황색) + 살짝 앞으로
+	if target.has_meta("sprite") and target.has_meta("base_position"):
 		var sprite = target.get_meta("sprite")
+		var base_pos = target.get_meta("base_position")
 		sprite.color = Color(1.0, 0.6, 0.2)
+
+		# 타겟도 살짝 앞으로 (현재 턴 캐릭터보다 적게)
+		var step_direction = -1 if target.is_player else 1
+		var target_pos = base_pos + Vector2(step_direction * STEP_FORWARD * 0.5, 0)
+
+		var tween = create_tween()
+		tween.tween_property(sprite, "position", target_pos, 0.1).set_ease(Tween.EASE_OUT)
 
 
 func _execute_action() -> void:
@@ -407,8 +461,13 @@ func _execute_action() -> void:
 
 func _on_action_executed(action_result: Dictionary) -> void:
 	var results: Array = action_result.results
+	var targets: Array = action_result.targets
 
-	for result in results:
+	for i in range(results.size()):
+		var result = results[i]
+		# 타겟 스프라이트 위치 가져오기
+		var target: Battler = targets[i] if i < targets.size() else null
+
 		if result.has("total_damage"):
 			var dmg = result.total_damage
 			var is_crit = result.is_critical
@@ -420,8 +479,8 @@ func _on_action_executed(action_result: Dictionary) -> void:
 			else:
 				Audio.play_se_with_variation("hit")
 
-			# 데미지 팝업 (적 위치 근처)
-			var popup_pos = Vector2(randf_range(150, 350), randf_range(180, 280))
+			# 데미지 팝업 - 타겟 스프라이트 위치 근처
+			var popup_pos = _get_battler_popup_position(target)
 			DamagePopup.create_damage(popup_container, popup_pos, dmg, is_crit, is_weak)
 
 			var log_text = "  → [color=red]%d[/color]" % dmg
@@ -438,13 +497,31 @@ func _on_action_executed(action_result: Dictionary) -> void:
 		elif result.has("heal"):
 			var heal = result.heal
 			Audio.play_se("heal")
-			var popup_pos = Vector2(randf_range(700, 900), randf_range(250, 350))
+			# 힐 팝업 - 타겟 스프라이트 위치 근처
+			var heal_target = result.target if result.has("target") else target
+			var popup_pos = _get_battler_popup_position(heal_target)
 			DamagePopup.create_heal(popup_container, popup_pos, heal)
 			_log("  → [color=green]+%d HP[/color]" % heal)
 
 
+func _get_battler_popup_position(battler: Battler) -> Vector2:
+	"""배틀러 스프라이트 위치에서 팝업 위치 계산"""
+	if battler and battler.has_meta("sprite"):
+		var sprite = battler.get_meta("sprite")
+		# 스프라이트 중앙 상단 근처에 약간의 랜덤성 추가
+		var sprite_pos = sprite.global_position
+		var sprite_size = sprite.size
+		return Vector2(
+			sprite_pos.x + sprite_size.x / 2 + randf_range(-30, 30),
+			sprite_pos.y + randf_range(-20, 20)
+		)
+	# 폴백: 화면 중앙
+	return Vector2(randf_range(800, 1100), randf_range(400, 550))
+
+
 func _on_enemy_broke(battler: Battler) -> void:
-	var popup_pos = Vector2(randf_range(150, 350), randf_range(150, 200))
+	# 브레이크 팝업 - 해당 적 스프라이트 위치에 표시
+	var popup_pos = _get_battler_popup_position(battler)
 	DamagePopup.create_break(popup_container, popup_pos)
 
 	if battler.has_meta("sprite"):

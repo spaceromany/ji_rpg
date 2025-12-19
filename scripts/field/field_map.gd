@@ -6,9 +6,9 @@ extends Node2D
 signal battle_triggered(player_units: Array, enemy_units: Array)
 signal battle_ended(player_won: bool, participating_units: Array)
 
-# 맵 설정
-@export var map_size: Vector2 = Vector2(1152, 648)
-@export var grid_size: int = 64
+# 맵 설정 (대형 전장)
+@export var map_size: Vector2 = Vector2(4000, 3000)
+@export var grid_size: int = 100
 
 # 유닛 관리
 var player_units: Array[FieldUnit] = []
@@ -29,11 +29,22 @@ var drag_start: Vector2 = Vector2.ZERO
 var selection_rect: ColorRect = null
 
 # 줌
-var zoom_level: float = 1.0
-var min_zoom: float = 0.5
+var zoom_level: float = 0.8
+var min_zoom: float = 0.3
 var max_zoom: float = 2.0
 var zoom_speed: float = 0.1
 var camera: Camera2D = null
+
+# 카메라 이동
+var is_camera_dragging: bool = false
+var camera_drag_start: Vector2 = Vector2.ZERO
+var camera_move_speed: float = 500.0
+
+# 미니맵 (1920x1080 기준)
+var minimap_container: Control
+var minimap_viewport: SubViewport
+var minimap_camera: Camera2D
+const MINIMAP_SIZE: Vector2 = Vector2(320, 240)
 
 # 컴포넌트
 @onready var units_container: Node2D = $Units
@@ -53,17 +64,21 @@ func _ready() -> void:
 	_setup_map()
 	_setup_ui()
 	_setup_selection_rect()
+	_setup_minimap()
 	_spawn_test_units()
 
 
 func _setup_camera() -> void:
 	camera = Camera2D.new()
-	camera.position = map_size / 2
+	# 플레이어 시작 위치 근처로 카메라 초기 위치 설정
+	camera.position = Vector2(map_size.x * 0.8, map_size.y * 0.5)
 	camera.zoom = Vector2(zoom_level, zoom_level)
 	camera.position_smoothing_enabled = true
 	camera.position_smoothing_speed = 10.0
 	add_child(camera)
 	camera.make_current()
+	# 초기 위치도 맵 범위 내로 제한
+	call_deferred("_clamp_camera_position")
 
 
 func _setup_selection_rect() -> void:
@@ -88,24 +103,58 @@ func _setup_map() -> void:
 
 
 func _setup_ui() -> void:
-	# 시간 상태 표시
+	# 시간 상태 표시 (1920x1080 기준)
 	time_indicator = Label.new()
 	time_indicator.text = "▶ 진행 중"
-	time_indicator.position = Vector2(map_size.x / 2 - 50, 10)
-	time_indicator.add_theme_font_size_override("font_size", 18)
+	time_indicator.position = Vector2(850, 15)
+	time_indicator.add_theme_font_size_override("font_size", 24)
 	time_indicator.add_theme_color_override("font_color", Color.GREEN)
 	ui_layer.add_child(time_indicator)
 
 	# 조작 안내 업데이트
 	info_label = $UILayer/InfoPanel/InfoLabel
 	if info_label:
+		info_label.add_theme_font_size_override("normal_font_size", 18)
 		info_label.text = """[color=yellow]전장 맵[/color]
 [color=gray]Space: 시간 정지/재개[/color]
 좌클릭: 유닛 선택
 드래그: 다중 선택
 우클릭: 이동 명령
 휠: 줌 인/아웃
+WASD/화살표: 카메라 이동
+중클릭 드래그: 카메라 팬
 적과 접촉 시 전투 시작"""
+
+
+func _setup_minimap() -> void:
+	"""미니맵 UI 설정 (1920x1080 기준)"""
+	# 미니맵 컨테이너 (우측 하단) - 1920x1080 기준 위치
+	minimap_container = Control.new()
+	minimap_container.position = Vector2(1920 - MINIMAP_SIZE.x - 30, 1080 - MINIMAP_SIZE.y - 30)
+	minimap_container.size = MINIMAP_SIZE
+	ui_layer.add_child(minimap_container)
+
+	# 미니맵 배경
+	var bg = ColorRect.new()
+	bg.size = MINIMAP_SIZE
+	bg.color = Color(0.1, 0.1, 0.1, 0.8)
+	minimap_container.add_child(bg)
+
+	# 미니맵 테두리
+	var border = ColorRect.new()
+	border.size = MINIMAP_SIZE + Vector2(6, 6)
+	border.position = Vector2(-3, -3)
+	border.color = Color(0.5, 0.5, 0.5)
+	border.z_index = -1
+	minimap_container.add_child(border)
+
+	# "MAP" 레이블
+	var label = Label.new()
+	label.text = "MAP"
+	label.position = Vector2(8, 4)
+	label.add_theme_font_size_override("font_size", 16)
+	label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	minimap_container.add_child(label)
 
 
 func _draw_grid() -> void:
@@ -127,23 +176,52 @@ func _draw_grid() -> void:
 
 
 func _spawn_test_units() -> void:
-	# 플레이어 유닛들 (우측)
-	var player1_data = _create_player_unit_data("1부대", Color(0.2, 0.5, 0.9))
-	var player2_data = _create_player_unit_data("2부대", Color(0.3, 0.6, 1.0))
-	var player3_data = _create_player_unit_data("3부대", Color(0.2, 0.4, 0.8))
+	# 플레이어 유닛들 (우측 - 8개)
+	var player_colors = [
+		Color(0.2, 0.5, 0.9),
+		Color(0.3, 0.6, 1.0),
+		Color(0.2, 0.4, 0.8),
+		Color(0.4, 0.6, 0.9),
+		Color(0.1, 0.4, 0.7),
+		Color(0.3, 0.5, 0.85),
+		Color(0.25, 0.55, 0.95),
+		Color(0.35, 0.45, 0.8)
+	]
 
-	spawn_unit(player1_data, Vector2(900, 250))
-	spawn_unit(player2_data, Vector2(950, 350))
-	spawn_unit(player3_data, Vector2(850, 400))
+	var player_start_x = map_size.x * 0.85
+	var player_start_y = map_size.y * 0.3
 
-	# 적 유닛들 (좌측)
-	var enemy1_data = _create_enemy_unit_data("적 선봉대", Color(0.9, 0.2, 0.2))
-	var enemy2_data = _create_enemy_unit_data("적 본대", Color(0.8, 0.3, 0.3))
-	var enemy3_data = _create_enemy_unit_data("적 후위대", Color(0.7, 0.2, 0.2))
+	for i in range(8):
+		var unit_name = "%d부대" % (i + 1)
+		var color = player_colors[i]
+		var data = _create_player_unit_data(unit_name, color)
 
-	spawn_unit(enemy1_data, Vector2(200, 300))
-	spawn_unit(enemy2_data, Vector2(150, 400))
-	spawn_unit(enemy3_data, Vector2(250, 450))
+		# 2열 4행 진형
+		var row = i / 2
+		var col = i % 2
+		var pos = Vector2(
+			player_start_x + col * 80,
+			player_start_y + row * 100
+		)
+		spawn_unit(data, pos)
+
+	# 적 유닛들 (맵 전역에 50개 분산)
+	var enemy_count = 50
+
+	for i in range(enemy_count):
+		var unit_name = "적%d" % (i + 1)
+		var color_variation = randf_range(0.6, 0.9)
+		var color = Color(color_variation, 0.2, 0.2)
+		var data = _create_enemy_unit_data(unit_name, color)
+
+		# 맵 왼쪽 70% 영역에 랜덤 배치
+		var pos = Vector2(
+			randf_range(100, map_size.x * 0.7),
+			randf_range(100, map_size.y - 100)
+		)
+		spawn_unit(data, pos)
+
+	print("[FieldMap] Spawned %d player units, %d enemy units" % [player_units.size(), enemy_units.size()])
 
 
 func _create_player_unit_data(unit_name: String, color: Color) -> FieldUnitData:
@@ -167,9 +245,9 @@ func _create_enemy_unit_data(unit_name: String, color: Color) -> FieldUnitData:
 	data.display_name = unit_name
 	data.is_player = false
 	data.unit_color = color
-	data.move_speed = 60.0
-	data.detection_range = 800.0  # 맵 전체 감지
-	data.support_range = 180.0
+	data.move_speed = 80.0
+	data.detection_range = 500.0  # 적 감지 범위
+	data.support_range = 200.0
 
 	data.battler_data_list.append(SampleData.create_goblin())
 	data.battler_data_list.append(SampleData.create_goblin())
@@ -234,6 +312,14 @@ func _input(event: InputEvent) -> void:
 				is_dragging = false
 				selection_rect.visible = false
 
+		# 중클릭: 카메라 드래그 시작
+		elif event.button_index == MOUSE_BUTTON_MIDDLE:
+			if event.pressed:
+				is_camera_dragging = true
+				camera_drag_start = event.position
+			else:
+				is_camera_dragging = false
+
 		# 우클릭: 선택된 유닛들 이동
 		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 			if selected_units.size() > 0:
@@ -249,9 +335,17 @@ func _input(event: InputEvent) -> void:
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN and not is_battle_active:
 			_zoom_camera(-zoom_speed)
 
-	# 마우스 이동 - 드래그 중 선택 박스 업데이트
-	if event is InputEventMouseMotion and is_dragging:
-		_update_selection_rect(get_global_mouse_position())
+	# 마우스 이동
+	if event is InputEventMouseMotion:
+		# 드래그 중 선택 박스 업데이트
+		if is_dragging:
+			_update_selection_rect(get_global_mouse_position())
+		# 카메라 드래그
+		elif is_camera_dragging:
+			var delta = camera_drag_start - event.position
+			camera.position += delta / zoom_level
+			_clamp_camera_position()
+			camera_drag_start = event.position
 
 
 func _zoom_camera(delta: float) -> void:
@@ -260,6 +354,8 @@ func _zoom_camera(delta: float) -> void:
 	if camera:
 		var tween = create_tween()
 		tween.tween_property(camera, "zoom", Vector2(zoom_level, zoom_level), 0.1)
+		# 줌 변경 후 카메라 위치 제한 적용
+		tween.tween_callback(_clamp_camera_position)
 
 
 func _get_unit_at_position(pos: Vector2) -> FieldUnit:
@@ -453,11 +549,124 @@ func end_battle(player_won: bool, _player_units_result: Array, _enemy_units_resu
 	print("[FieldMap] Battle ended. Player won: %s" % player_won)
 
 
-func _process(_delta: float) -> void:
-	if is_battle_active or paused or time_stopped:
+func _process(delta: float) -> void:
+	if is_battle_active or paused:
+		return
+
+	# 키보드로 카메라 이동 (WASD / 화살표)
+	_update_camera_movement(delta)
+
+	# 미니맵 업데이트
+	_update_minimap()
+
+	if time_stopped:
 		return
 
 	_update_enemy_ai()
+
+
+func _update_camera_movement(delta: float) -> void:
+	"""키보드로 카메라 이동"""
+	var move_dir = Vector2.ZERO
+
+	if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP):
+		move_dir.y -= 1
+	if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN):
+		move_dir.y += 1
+	if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT):
+		move_dir.x -= 1
+	if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
+		move_dir.x += 1
+
+	if move_dir != Vector2.ZERO:
+		camera.position += move_dir.normalized() * camera_move_speed * delta / zoom_level
+		_clamp_camera_position()
+
+
+func _clamp_camera_position() -> void:
+	"""카메라 위치를 맵 범위 내로 제한"""
+	if not camera:
+		return
+
+	var viewport_size = get_viewport().size / zoom_level
+	var half_viewport = viewport_size / 2
+
+	# 뷰포트가 맵보다 큰 경우 (줌 아웃이 많이 된 경우) 중앙에 고정
+	var min_x: float
+	var max_x: float
+	var min_y: float
+	var max_y: float
+
+	if viewport_size.x >= map_size.x:
+		# 가로가 맵보다 크면 중앙 고정
+		min_x = map_size.x / 2
+		max_x = map_size.x / 2
+	else:
+		min_x = half_viewport.x
+		max_x = map_size.x - half_viewport.x
+
+	if viewport_size.y >= map_size.y:
+		# 세로가 맵보다 크면 중앙 고정
+		min_y = map_size.y / 2
+		max_y = map_size.y / 2
+	else:
+		min_y = half_viewport.y
+		max_y = map_size.y - half_viewport.y
+
+	camera.position.x = clamp(camera.position.x, min_x, max_x)
+	camera.position.y = clamp(camera.position.y, min_y, max_y)
+
+
+func _update_minimap() -> void:
+	"""미니맵에 유닛 표시 업데이트"""
+	if not minimap_container:
+		return
+
+	# 기존 미니맵 마커 제거 (처음 3개는 배경, 테두리, 레이블)
+	var children = minimap_container.get_children()
+	for i in range(children.size() - 1, 2, -1):
+		children[i].queue_free()
+
+	# 맵 → 미니맵 스케일
+	var scale_x = MINIMAP_SIZE.x / map_size.x
+	var scale_y = MINIMAP_SIZE.y / map_size.y
+
+	# 플레이어 유닛 마커 (파란색) - 미니맵 크기에 맞춰 마커도 증가
+	for unit in player_units:
+		if not is_instance_valid(unit):
+			continue
+		var marker = ColorRect.new()
+		marker.size = Vector2(6, 6)
+		marker.position = Vector2(
+			unit.global_position.x * scale_x - 3,
+			unit.global_position.y * scale_y - 3
+		)
+		marker.color = Color(0.3, 0.6, 1.0)
+		minimap_container.add_child(marker)
+
+	# 적 유닛 마커 (빨간색)
+	for unit in enemy_units:
+		if not is_instance_valid(unit):
+			continue
+		var marker = ColorRect.new()
+		marker.size = Vector2(5, 5)
+		marker.position = Vector2(
+			unit.global_position.x * scale_x - 2.5,
+			unit.global_position.y * scale_y - 2.5
+		)
+		marker.color = Color(1.0, 0.3, 0.3)
+		minimap_container.add_child(marker)
+
+	# 카메라 뷰 영역 표시 (흰색 테두리)
+	var viewport_size = get_viewport().size / zoom_level
+	var cam_rect = ColorRect.new()
+	cam_rect.size = Vector2(viewport_size.x * scale_x, viewport_size.y * scale_y)
+	cam_rect.position = Vector2(
+		(camera.position.x - viewport_size.x / 2) * scale_x,
+		(camera.position.y - viewport_size.y / 2) * scale_y
+	)
+	cam_rect.color = Color(1, 1, 1, 0.2)
+	minimap_container.add_child(cam_rect)
 
 
 func _update_enemy_ai() -> void:

@@ -56,6 +56,9 @@ func _on_battle_triggered(player_units: Array, enemy_units: Array) -> void:
 	# 전장 맵 일시정지 (제거하지 않음)
 	field_map.paused = true
 	field_map.visible = false
+	# UI Layer도 숨기기 (CanvasLayer는 별도로 렌더링되므로)
+	if field_map.ui_layer:
+		field_map.ui_layer.visible = false
 
 	# 카메라 줌 저장 및 리셋
 	saved_zoom_level = field_map.zoom_level
@@ -111,6 +114,12 @@ func _return_to_field_map(player_won: bool) -> void:
 	# 전장 맵 복귀
 	field_map.visible = true
 	field_map.paused = false
+	# UI Layer 다시 표시
+	if field_map.ui_layer:
+		field_map.ui_layer.visible = true
+	# 전장 맵 카메라 활성화
+	if field_map.camera:
+		field_map.camera.make_current()
 
 	# 카메라 줌 복원
 	field_map.zoom_level = saved_zoom_level

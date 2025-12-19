@@ -7,6 +7,7 @@ signal battle_started()
 signal battle_ended(player_won: bool)
 signal action_executed(action_result: Dictionary)
 signal waiting_for_player_input(battler: Battler)
+signal enemy_turn_started(battler: Battler)  # 적군 턴 시작 시그널
 
 enum BattleState {
 	INACTIVE,
@@ -92,6 +93,10 @@ func _process_turn(battler: Battler) -> void:
 	else:
 		state = BattleState.ENEMY_TURN
 		print("[BattleManager] Executing enemy AI: %s" % battler.data.display_name)
+		is_processing_turn = false  # 시그널 발행 전 플래그 해제
+		enemy_turn_started.emit(battler)  # 적군 턴 시작 시그널 (하이라이트용)
+		await get_tree().create_timer(0.3).timeout  # 하이라이트 애니메이션 대기
+		is_processing_turn = true
 		await _execute_enemy_ai(battler)
 		# is_processing_turn은 _execute_enemy_ai 내부에서 advance_turn 호출 전에 해제됨
 
